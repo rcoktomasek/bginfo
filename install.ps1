@@ -15,7 +15,7 @@
 <#
 ===============================================================================
 Install BGInfo WIN (Action1)
-Version: 1.1.0
+Version: 1.1.1
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Download RCO_BGINFO.zip from GitHub, verify it, expand it to C:\RCO\BGINFO
@@ -37,6 +37,8 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  1.1.1 - Layout: panel nudged down to sit level with the RCO wordmark (1080p);
+          headings in letter-spaced caps, siren emoji removed
   1.1.0 - Install to C:\RCO\BGINFO (was C:\RCO\RCO_BGINFO); keep zip in C:\RCO
         - RCO script header, logging
   1.0.0 - Initial version
@@ -45,11 +47,11 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "1.1.0"
+$scriptVersion = "1.1.1"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
-$zipSha256 = "78bd66f54184299a41dbcb0f289e06c5e861ee2217f43e483f027af35eae4894"
+$zipSha256 = "5f85ae44f73a393b475e00ed459a295160a84d98991e3b761a6c99135e5e44a0"
 $rcoRoot   = "C:\RCO"
 $zipPath   = Join-Path $rcoRoot "RCO_BGINFO.zip"
 $bgDest    = Join-Path $rcoRoot "BGINFO"
