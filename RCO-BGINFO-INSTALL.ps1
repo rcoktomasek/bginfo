@@ -64,7 +64,7 @@ $scriptVersion = "2.0.1"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
-$zipSha256 = "4d36a6e48675654c2e1e97d5197a1781d1d0b28c8bfe79a9fedb64d00814af79"
+$zipSha256 = "06e8d8228c6ec530f8310b7c5caf5c5bb11ead270f4fd061d987ac42e0e9d17e"
 $rcoRoot   = "C:\RCO"
 $zipPath   = Join-Path $rcoRoot "RCO_BGINFO.zip"
 $bgDest    = Join-Path $rcoRoot "BGINFO"
