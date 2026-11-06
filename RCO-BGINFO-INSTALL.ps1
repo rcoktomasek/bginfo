@@ -16,7 +16,7 @@
 <#
 ===============================================================================
 RCO BGINFO Install (Action1)
-Version: 2.0.0
+Version: 2.0.1
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: One-shot install. Download RCO_BGINFO.zip from GitHub, verify it, expand
@@ -47,6 +47,7 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.1 - Fix: install failed when it and the update script wrote the log at once
   2.0.0 - SYSTEM-drawn wallpaper (RCO-BGINFO-UPDATE.ps1) replaces Sysinternals
           BGInfo; Machine Info / Connection Info / Need IT Help sections; wallpaper
           enforced by policy for all users; scheduled task; renamed
@@ -59,11 +60,11 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.0"
+$scriptVersion = "2.0.1"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
-$zipSha256 = "e7a0b3fd801a65d514cc89bc593b57877235b99aa93ab1cb43680c68774e97e0"
+$zipSha256 = "4d36a6e48675654c2e1e97d5197a1781d1d0b28c8bfe79a9fedb64d00814af79"
 $rcoRoot   = "C:\RCO"
 $zipPath   = Join-Path $rcoRoot "RCO_BGINFO.zip"
 $bgDest    = Join-Path $rcoRoot "BGINFO"
@@ -85,7 +86,11 @@ function Write-Log {
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
     $entry = "[$timestamp][$Level] $Message"
     Write-Host $entry
-    Add-Content -Path $logPath -Value $entry
+    # The task and the install can log at the same moment: retry briefly, never fail on a log line.
+    for ($try = 1; $try -le 10; $try++) {
+        try { Add-Content -Path $logPath -Value $entry -ErrorAction Stop; break }
+        catch { Start-Sleep -Milliseconds 200 }
+    }
 }
 
 function Invoke-ForEachUserHive {
@@ -212,8 +217,12 @@ try {
     Write-Log "Set $bgDest to read-only for users"
 
     # --- Draw the wallpaper now (prints the panel text) ---
-    & powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $updater | ForEach-Object { Write-Log "$_" }
-    if ($LASTEXITCODE -ne 0 -or -not (Test-Path $wallpaper)) { throw "RCO-BGINFO-UPDATE.ps1 didn't draw $wallpaper" }
+    # Collect the output first: the updater writes the same log, so log its lines after it exits.
+    $updOut  = @(& powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File $updater 2>&1)
+    $updCode = $LASTEXITCODE
+    $updOut | Where-Object { "$_" -notmatch '^\[\d{4}-' } | ForEach-Object { Write-Log "$_" }
+    if ($updCode -ne 0 -or -not (Test-Path $wallpaper)) { throw "RCO-BGINFO-UPDATE.ps1 didn't draw $wallpaper (exit $updCode): $($updOut -join ' | ')" }
+    Write-Log "Drew $wallpaper"
 
     # --- Scheduled task ---
     Register-ScheduledTask -TaskPath $taskPath -TaskName $taskName -Xml $taskXml -Force | Out-Null

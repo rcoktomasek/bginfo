@@ -14,7 +14,7 @@
 <#
 ===============================================================================
 RCO BGINFO Update
-Version: 2.0.0
+Version: 2.0.1
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Collect machine + connection info and draw it onto RCO_BG.bmp, saving
@@ -36,13 +36,14 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.1 - Log writes retry when the log is busy
   2.0.0 - Initial version (replaces Sysinternals BGInfo)
 ===============================================================================
 #>
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.0"
+$scriptVersion = "2.0.1"
 $bgDir     = "C:\RCO\BGINFO"
 $bgImage   = Join-Path $bgDir "RCO_BG.bmp"
 $outImage  = Join-Path $bgDir "RCO_Wallpaper.bmp"
@@ -64,7 +65,11 @@ function Write-Log {
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
     $entry = "[$timestamp][$Level] $Message"
     Write-Host $entry
-    Add-Content -Path $logPath -Value $entry
+    # The task and the install can log at the same moment: retry briefly, never fail on a log line.
+    for ($try = 1; $try -le 10; $try++) {
+        try { Add-Content -Path $logPath -Value $entry -ErrorAction Stop; break }
+        catch { Start-Sleep -Milliseconds 200 }
+    }
 }
 
 # --- Collect -----------------------------------------------------------------

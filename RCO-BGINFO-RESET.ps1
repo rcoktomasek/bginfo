@@ -15,7 +15,7 @@
 <#
 ===============================================================================
 RCO BGINFO Reset (Action1)
-Version: 2.0.0
+Version: 2.0.1
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Undo the wallpaper policy applied by RCO-BGINFO-INSTALL.ps1.
@@ -35,13 +35,14 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.1 - Log writes retry when the log is busy
   2.0.0 - Initial version
 ===============================================================================
 #>
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.0"
+$scriptVersion = "2.0.1"
 $winDefault    = Join-Path $env:WINDIR "Web\Wallpaper\Windows\img0.jpg"
 $logPath       = Join-Path $env:ProgramData "RCO\Logs\BGInfo.log"
 
@@ -55,7 +56,11 @@ function Write-Log {
     $timestamp = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
     $entry = "[$timestamp][$Level] $Message"
     Write-Host $entry
-    Add-Content -Path $logPath -Value $entry
+    # The task and the install can log at the same moment: retry briefly, never fail on a log line.
+    for ($try = 1; $try -le 10; $try++) {
+        try { Add-Content -Path $logPath -Value $entry -ErrorAction Stop; break }
+        catch { Start-Sleep -Milliseconds 200 }
+    }
 }
 
 function Invoke-ForEachUserHive {
