@@ -14,7 +14,7 @@
 <#
 ===============================================================================
 RCO BGINFO Update
-Version: 2.0.1
+Version: 2.0.2
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Collect machine + connection info and draw it onto RCO_BG.bmp, saving
@@ -27,8 +27,8 @@ Run Context:
 Notes:
   - One image per machine, so there is no per-user line (Action1 shows who is
     signed in)
-  - The panel is drawn in wallpaper pixels and centred on the ROWE CASA ORGANICS
-    wordmark (y = 577 of 1080), so it lines up on every screen size
+  - The panel is drawn in wallpaper pixels, centred vertically on the image, so
+    it sits the same on every screen size
   - Wi-Fi line only when Wi-Fi is connected; for Wi-Fi the connection profile
     name is the SSID
   - Windows loads the new image at each user's next sign-in
@@ -36,6 +36,7 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.2 - Panel centred vertically on the screen; no "Updated" line
   2.0.1 - Log writes retry when the log is busy
   2.0.0 - Initial version (replaces Sysinternals BGInfo)
 ===============================================================================
@@ -43,7 +44,7 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.1"
+$scriptVersion = "2.0.2"
 $bgDir     = "C:\RCO\BGINFO"
 $bgImage   = Join-Path $bgDir "RCO_BG.bmp"
 $outImage  = Join-Path $bgDir "RCO_Wallpaper.bmp"
@@ -52,7 +53,7 @@ $logPath   = Join-Path $env:ProgramData "RCO\Logs\BGInfo.log"
 # Layout, in pixels of the 1920x1080 wallpaper (scaled if the image is a different size).
 $panelLeft    = 1500     # left edge of the labels
 $valueOffset  = 80       # labels -> values
-$wordmarkMidY = 577      # vertical centre of ROWE CASA ORGANICS
+$panelMidY    = 540      # vertical centre of the panel (middle of the screen)
 $maxValueLen  = 34       # longer values are cut with "..."
 
 New-Item -Path (Split-Path $logPath) -ItemType Directory -Force | Out-Null
@@ -156,8 +157,6 @@ function Get-PanelLines {
     Add-Line Gap
     Add-Line Heading 'EMERGENCIES ONLY'
     Add-Line Row 'Call'   '469-893-1998'
-    Add-Line Gap
-    Add-Line Small '' ("Updated " + (Get-Date).ToString('M/d/yyyy h:mm tt'))
     return $lines
 }
 
@@ -201,7 +200,7 @@ function Write-Panel {
         $total = 0; foreach ($l in $Lines) { $total += Get-LineHeight $l.Kind }
         $x  = $panelLeft * $s
         $vx = ($panelLeft + $valueOffset) * $s
-        $y  = ($wordmarkMidY * $s) - ($total * $s / 2)
+        $y  = ($panelMidY * $s) - ($total * $s / 2)
 
         foreach ($l in $Lines) {
             $h = (Get-LineHeight $l.Kind) * $s

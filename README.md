@@ -17,7 +17,7 @@ Changes show at each user's next sign-in. All scripts log to `%ProgramData%\RCO\
 
 Machine Info (name, OS + release, model, serial, RAM, disk, last boot), Connection Info
 (Ethernet / Wi-Fi SSID, IP, gateway, MAC), Need IT Help (email, portal, Slack, emergency line),
-centred on the ROWE CASA ORGANICS wordmark. Layout values are at the top of `RCO-BGINFO-UPDATE.ps1`.
+centred vertically on the screen. Layout values are at the top of `RCO-BGINFO-UPDATE.ps1`.
 
 ## Changing the panel or wallpaper
 
