@@ -1,23 +1,28 @@
-# RCO BGInfo
+# RCO BGINFO
 
-Shows the PC name, user, IP, last reboot and IT contact info on every RCO desktop. Deployed with Action1.
+Puts machine info, connection info and IT contact info on the RCO grey wallpaper for every user
+on a Windows PC, and stops users changing it. Deployed with Action1, run as SYSTEM.
 
-| File | What it is |
+| Script | What it does |
 |---|---|
-| `RCO_BGINFO.zip` | `BGINFO\` folder: `Bginfo64.exe`, `RCO_BGINFO.bgi` (layout), `RCO_BG.bmp` (wallpaper) |
-| `install.ps1` | **Install BGInfo WIN** — Action1 script (runs as SYSTEM): downloads the zip to `C:\RCO`, checks its SHA-256, expands to `C:\RCO\BGINFO`, sets BGInfo to run at every logon |
-| `uninstall.ps1` | **Uninstall BGInfo WIN** — Action1 script: removes the logon entry, `C:\RCO\BGINFO` and the zip |
+| `RCO-BGINFO-INSTALL.ps1` | One-shot install. Downloads `RCO_BGINFO.zip`, checks its SHA-256, expands to `C:\RCO\BGINFO` (read-only for users), draws `RCO_Wallpaper.bmp`, enforces it for every profile (and new users) with the Desktop Wallpaper / Prevent changing desktop background policies, and registers the `\RCO\RCO BGINFO Update` task. Removes BGInfo 1.x. |
+| `RCO-BGINFO-RESET.ps1` | Removes the wallpaper policy. Users get their own wallpaper back and can change it again. |
+| `RCO-BGINFO-UPDATE.ps1` | Ships inside the zip. Draws the panel onto `RCO_BG.bmp`. Run as SYSTEM by the task at startup, sign-in, network change and daily 06:00. |
 
-`C:\RCO` is the ThreatLocker-approved path, so BGInfo runs from there.
+Changes show at each user's next sign-in. All scripts log to `%ProgramData%\RCO\Logs\BGInfo.log`.
+`C:\RCO` is the ThreatLocker-approved path.
 
-## Changing the layout
+## Panel
 
-1. Edit `RCO_BGINFO.bgi` in `Bginfo64.exe` on a Windows PC and save.
-2. Rebuild `RCO_BGINFO.zip` with the files inside a top-level `BGINFO\` folder.
-   The layout's wallpaper must point at `C:\RCO\BGINFO\RCO_BG.bmp` (BGInfo stores the full path).
+Machine Info (name, OS + release, model, serial, RAM, disk, last boot), Connection Info
+(Ethernet / Wi-Fi SSID, IP, gateway, MAC), Need IT Help (email, portal, Slack, emergency line),
+centred on the ROWE CASA ORGANICS wordmark. Layout values are at the top of `RCO-BGINFO-UPDATE.ps1`.
+
+## Changing the panel or wallpaper
+
+1. Edit `RCO-BGINFO-UPDATE.ps1` (and/or `RCO_BG.bmp`, 1920x1080).
+2. Rebuild `RCO_BGINFO.zip` with both files inside a top-level `BGINFO\` folder.
 3. Get the new hash: `(Get-FileHash .\RCO_BGINFO.zip -Algorithm SHA256).Hash`
-4. Put it in `$ZipSha256` in `install.ps1`, and commit the zip and `install.ps1` together.
-   Until both are pushed, installs fail on the hash check instead of running a mismatched zip.
-5. Bump `$scriptVersion` and the changelog in `install.ps1`, then re-run the Action1 script. Changes show at each user's next logon.
-
-Both scripts log to `%ProgramData%\RCO\Logs\BGInfo.log` on the PC.
+4. Put it in `$zipSha256` in `RCO-BGINFO-INSTALL.ps1`, bump the versions and changelogs, and commit
+   the zip and scripts together. Until both are pushed, installs fail on the hash check.
+5. Re-run `RCO-BGINFO-INSTALL.ps1` from Action1.
