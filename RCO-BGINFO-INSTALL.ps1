@@ -16,7 +16,7 @@
 <#
 ===============================================================================
 RCO BGINFO Install (Action1)
-Version: 2.0.2
+Version: 2.0.3
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: One-shot install. Download RCO_BGINFO.zip from GitHub, verify it, expand
@@ -47,6 +47,8 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.3 - Full computer name (was cut to 15 characters); network names without
+          the " 2"/" 3" suffix Windows adds
   2.0.2 - Panel centred vertically on the screen; no "Updated" line
   2.0.1 - Fix: install failed when it and the update script wrote the log at once
   2.0.0 - SYSTEM-drawn wallpaper (RCO-BGINFO-UPDATE.ps1) replaces Sysinternals
@@ -61,11 +63,11 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.2"
+$scriptVersion = "2.0.3"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
-$zipSha256 = "97034c855c06ff2c7d6bbde74212e85f02e0e2585866f081ba4a70618e9f06df"
+$zipSha256 = "12d1c27c726af341d688f77ba8825ef8f59930ccfcd75f983e311455042d405e"
 $rcoRoot   = "C:\RCO"
 $zipPath   = Join-Path $rcoRoot "RCO_BGINFO.zip"
 $bgDest    = Join-Path $rcoRoot "BGINFO"

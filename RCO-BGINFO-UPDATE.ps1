@@ -14,7 +14,7 @@
 <#
 ===============================================================================
 RCO BGINFO Update
-Version: 2.0.2
+Version: 2.0.3
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Collect machine + connection info and draw it onto RCO_BG.bmp, saving
@@ -36,6 +36,8 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.3 - Full computer name (was cut to 15 characters); network names without
+          the " 2"/" 3" suffix Windows adds
   2.0.2 - Panel centred vertically on the screen; no "Updated" line
   2.0.1 - Log writes retry when the log is busy
   2.0.0 - Initial version (replaces Sysinternals BGInfo)
@@ -44,7 +46,7 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.2"
+$scriptVersion = "2.0.3"
 $bgDir     = "C:\RCO\BGINFO"
 $bgImage   = Join-Path $bgDir "RCO_BG.bmp"
 $outImage  = Join-Path $bgDir "RCO_Wallpaper.bmp"
@@ -94,6 +96,17 @@ function Get-ModelName {
     return "$mfr $model".Trim()
 }
 
+function Get-NetworkName {
+    # Windows names repeat networks "RCO-Corp 2", "RCO-Corp 3"...; the profile's Description keeps
+    # the original name (the SSID for Wi-Fi). Fall back to the profile name.
+    param([string]$ProfileName)
+    $key = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\NetworkList\Profiles'
+    $match = Get-ChildItem $key -ErrorAction SilentlyContinue | Get-ItemProperty |
+        Where-Object { $_.ProfileName -eq $ProfileName } | Select-Object -First 1
+    if ($match -and $match.Description) { return "$($match.Description)" }
+    return $ProfileName
+}
+
 function Get-Connections {
     # Connected adapters with an IPv4 default gateway, best route first.
     $cfg = @(Get-NetIPConfiguration -ErrorAction SilentlyContinue | Where-Object {
@@ -107,7 +120,7 @@ function Get-Connections {
         }
         [pscustomobject]@{
             Kind    = $kind
-            Name    = "$(@($c.NetProfile)[0].Name)"
+            Name    = Get-NetworkName "$(@($c.NetProfile)[0].Name)"
             IP      = "$(@($c.IPv4Address)[0].IPAddress)"
             Gateway = "$(@($c.IPv4DefaultGateway)[0].NextHop)"
             MAC     = "$($c.NetAdapter.MacAddress)"
@@ -128,7 +141,9 @@ function Get-PanelLines {
     function Add-Line { param($Kind, $Label = '', $Value = '') $lines.Add([pscustomobject]@{ Kind = $Kind; Label = $Label; Value = "$Value" }) }
 
     Add-Line Heading 'MACHINE INFO'
-    Add-Line Host '' $env:COMPUTERNAME
+    # COMPUTERNAME is the NetBIOS name, cut to 15 characters; DNSHostName is the full name.
+    $hostName = if ($cs.DNSHostName) { "$($cs.DNSHostName)".ToUpper() } else { $env:COMPUTERNAME }
+    Add-Line Host '' $hostName
     Add-Line Row 'OS'     $osName
     Add-Line Row 'Model'  (Get-ModelName $cs)
     Add-Line Row 'Serial' ("$($bios.SerialNumber)".Trim())
