@@ -5,8 +5,8 @@ Shows the PC name, user, IP, last reboot and IT contact info on every RCO deskto
 | File | What it is |
 |---|---|
 | `RCO_BGINFO.zip` | `BGINFO\` folder: `Bginfo64.exe`, `RCO_BGINFO.bgi` (layout), `RCO_BG.bmp` (wallpaper) |
-| `install.ps1` | Action1 script (runs as SYSTEM): downloads the zip to `C:\RCO`, checks its SHA-256, expands to `C:\RCO\BGINFO`, sets BGInfo to run at every logon |
-| `uninstall.ps1` | Action1 script: removes the logon entry, `C:\RCO\BGINFO` and the zip |
+| `install.ps1` | **Install BGInfo WIN** — Action1 script (runs as SYSTEM): downloads the zip to `C:\RCO`, checks its SHA-256, expands to `C:\RCO\BGINFO`, sets BGInfo to run at every logon |
+| `uninstall.ps1` | **Uninstall BGInfo WIN** — Action1 script: removes the logon entry, `C:\RCO\BGINFO` and the zip |
 
 `C:\RCO` is the ThreatLocker-approved path, so BGInfo runs from there.
 
@@ -18,4 +18,6 @@ Shows the PC name, user, IP, last reboot and IT contact info on every RCO deskto
 3. Get the new hash: `(Get-FileHash .\RCO_BGINFO.zip -Algorithm SHA256).Hash`
 4. Put it in `$ZipSha256` in `install.ps1`, and commit the zip and `install.ps1` together.
    Until both are pushed, installs fail on the hash check instead of running a mismatched zip.
-5. Re-run the Action1 script. Changes show at each user's next logon.
+5. Bump `$scriptVersion` and the changelog in `install.ps1`, then re-run the Action1 script. Changes show at each user's next logon.
+
+Both scripts log to `%ProgramData%\RCO\Logs\BGInfo.log` on the PC.
