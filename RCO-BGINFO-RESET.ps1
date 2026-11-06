@@ -15,7 +15,7 @@
 <#
 ===============================================================================
 RCO BGINFO Reset (Action1)
-Version: 2.0.1
+Version: 2.0.4
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Undo the wallpaper policy applied by RCO-BGINFO-INSTALL.ps1.
@@ -35,6 +35,7 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.4 - Fix: a locked user hive (reg load error) stopped the script; it now warns and moves on
   2.0.1 - Log writes retry when the log is busy
   2.0.0 - Initial version
 ===============================================================================
@@ -42,7 +43,7 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.1"
+$scriptVersion = "2.0.4"
 $winDefault    = Join-Path $env:WINDIR "Web\Wallpaper\Windows\img0.jpg"
 $logPath       = Join-Path $env:ProgramData "RCO\Logs\BGInfo.log"
 
@@ -76,7 +77,8 @@ function Invoke-ForEachUserHive {
         if (-not (Test-Path $root)) {
             if (-not (Test-Path $t.Dat)) { continue }
             $root = "Registry::HKEY_USERS\RCO_$($t.Name)"
-            & reg.exe load "HKU\RCO_$($t.Name)" $t.Dat 2>&1 | Out-Null
+            # cmd does the redirect: in PowerShell 5.1, 2>&1 on a native command throws under Stop.
+            cmd.exe /c "reg.exe load `"HKU\RCO_$($t.Name)`" `"$($t.Dat)`" >nul 2>&1"
             if ($LASTEXITCODE -ne 0) { Write-Log "Couldn't load the hive for $($t.Name)" -Level WARN; continue }
             $loaded = $true
         }
@@ -85,7 +87,7 @@ function Invoke-ForEachUserHive {
         finally {
             if ($loaded) {
                 [gc]::Collect(); [gc]::WaitForPendingFinalizers()
-                & reg.exe unload "HKU\RCO_$($t.Name)" 2>&1 | Out-Null
+                cmd.exe /c "reg.exe unload `"HKU\RCO_$($t.Name)`" >nul 2>&1"
                 if ($LASTEXITCODE -ne 0) { Write-Log "Couldn't unload the hive for $($t.Name)" -Level WARN }
             }
         }

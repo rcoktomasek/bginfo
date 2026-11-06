@@ -15,7 +15,7 @@
 <#
 ===============================================================================
 RCO BGINFO Verify (Action1)
-Version: 2.0.0
+Version: 2.0.4
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: Prove an install on a test PC before rolling out further.
@@ -32,13 +32,14 @@ Notes:
   - Exit code 1 if any check fails
 
 Changelog:
+  2.0.4 - Fix: a locked user hive (reg load error) stopped the script; it now warns and moves on
   2.0.0 - Initial version
 ===============================================================================
 #>
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.0"
+$scriptVersion = "2.0.4"
 $bgDir     = "C:\RCO\BGINFO"
 $wallpaper = Join-Path $bgDir "RCO_Wallpaper.bmp"
 $zipPath   = "C:\RCO\RCO_BGINFO.zip"
@@ -67,7 +68,8 @@ function Invoke-ForEachUserHive {
         if (-not (Test-Path $root)) {
             if (-not (Test-Path $t.Dat)) { continue }
             $root = "Registry::HKEY_USERS\RCO_$($t.Name)"
-            & reg.exe load "HKU\RCO_$($t.Name)" $t.Dat 2>&1 | Out-Null
+            # cmd does the redirect: in PowerShell 5.1, 2>&1 on a native command throws under Stop.
+            cmd.exe /c "reg.exe load `"HKU\RCO_$($t.Name)`" `"$($t.Dat)`" >nul 2>&1"
             if ($LASTEXITCODE -ne 0) { Test-Check "Policy $($t.Path)" $false "couldn't load hive"; continue }
             $loaded = $true
         }
@@ -75,7 +77,7 @@ function Invoke-ForEachUserHive {
         finally {
             if ($loaded) {
                 [gc]::Collect(); [gc]::WaitForPendingFinalizers()
-                & reg.exe unload "HKU\RCO_$($t.Name)" 2>&1 | Out-Null
+                cmd.exe /c "reg.exe unload `"HKU\RCO_$($t.Name)`" >nul 2>&1"
             }
         }
     }

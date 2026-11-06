@@ -16,7 +16,7 @@
 <#
 ===============================================================================
 RCO BGINFO Install (Action1)
-Version: 2.0.3
+Version: 2.0.4
 Date: 2026-11-06
 Maintainer: Kasey Tomasek
 Purpose: One-shot install. Download RCO_BGINFO.zip from GitHub, verify it, expand
@@ -47,6 +47,7 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.4 - Fix: a locked user hive (reg load error) stopped the script; it now warns and moves on
   2.0.3 - Full computer name (was cut to 15 characters); network names without
           the " 2"/" 3" suffix Windows adds
   2.0.2 - Panel centred vertically on the screen; no "Updated" line
@@ -63,7 +64,7 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.3"
+$scriptVersion = "2.0.4"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
@@ -109,7 +110,8 @@ function Invoke-ForEachUserHive {
         if (-not (Test-Path $root)) {
             if (-not (Test-Path $t.Dat)) { continue }
             $root = "Registry::HKEY_USERS\RCO_$($t.Name)"
-            & reg.exe load "HKU\RCO_$($t.Name)" $t.Dat 2>&1 | Out-Null
+            # cmd does the redirect: in PowerShell 5.1, 2>&1 on a native command throws under Stop.
+            cmd.exe /c "reg.exe load `"HKU\RCO_$($t.Name)`" `"$($t.Dat)`" >nul 2>&1"
             if ($LASTEXITCODE -ne 0) { Write-Log "Couldn't load the hive for $($t.Name)" -Level WARN; continue }
             $loaded = $true
         }
@@ -118,7 +120,7 @@ function Invoke-ForEachUserHive {
         finally {
             if ($loaded) {
                 [gc]::Collect(); [gc]::WaitForPendingFinalizers()
-                & reg.exe unload "HKU\RCO_$($t.Name)" 2>&1 | Out-Null
+                cmd.exe /c "reg.exe unload `"HKU\RCO_$($t.Name)`" >nul 2>&1"
                 if ($LASTEXITCODE -ne 0) { Write-Log "Couldn't unload the hive for $($t.Name)" -Level WARN }
             }
         }
