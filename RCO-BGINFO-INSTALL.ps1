@@ -16,8 +16,8 @@
 <#
 ===============================================================================
 RCO BGINFO Install (Action1)
-Version: 2.0.4
-Date: 2026-11-06
+Version: 2.0.5
+Date: 2026-11-09
 Maintainer: Kasey Tomasek
 Purpose: One-shot install. Download RCO_BGINFO.zip from GitHub, verify it, expand
          it to C:\RCO\BGINFO, draw the wallpaper, enforce it for every user by
@@ -47,6 +47,8 @@ Notes:
   - Logs to: %ProgramData%\RCO\Logs\BGInfo.log
 
 Changelog:
+  2.0.5 - Download retried 3 times; skipped when the local zip already matches
+          (runs daily from the "RCO BGINFO - Ensure (daily)" Action1 automation)
   2.0.4 - Fix: a locked user hive (reg load error) stopped the script; it now warns and moves on
   2.0.3 - Full computer name (was cut to 15 characters); network names without
           the " 2"/" 3" suffix Windows adds
@@ -64,7 +66,7 @@ Changelog:
 
 $ErrorActionPreference = 'Stop'
 
-$scriptVersion = "2.0.4"
+$scriptVersion = "2.0.5"
 $zipUrl    = "https://github.com/rcoktomasek/bginfo/raw/main/RCO_BGINFO.zip"
 # SHA-256 of RCO_BGINFO.zip. The script refuses a zip that doesn't match, so a tampered or
 # half-uploaded zip never runs as SYSTEM across the fleet.
@@ -177,13 +179,26 @@ try {
     # --- Download and verify ---
     [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
     New-Item -Path $rcoRoot -ItemType Directory -Force | Out-Null
-    Invoke-WebRequest $zipUrl -OutFile $zipPath -UseBasicParsing
-    $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash
-    if ($hash -ne $zipSha256) {
-        Remove-Item $zipPath -Force
-        throw "RCO_BGINFO.zip hash $hash doesn't match the expected $zipSha256"
+    # The daily re-run skips the download when the local zip is already the right one.
+    if ((Test-Path $zipPath) -and (Get-FileHash $zipPath -Algorithm SHA256).Hash -eq $zipSha256) {
+        Write-Log "$zipPath is current (SHA-256 verified); no download needed"
+    } else {
+        # Three tries: one DNS blip or a laptop dropping Wi-Fi shouldn't fail the install.
+        for ($try = 1; $try -le 3; $try++) {
+            try { Invoke-WebRequest $zipUrl -OutFile $zipPath -UseBasicParsing -TimeoutSec 120; break }
+            catch {
+                if ($try -eq 3) { throw }
+                Write-Log "Download attempt $try failed ($($_.Exception.Message)); retrying in 30s" "WARN"
+                Start-Sleep -Seconds 30
+            }
+        }
+        $hash = (Get-FileHash $zipPath -Algorithm SHA256).Hash
+        if ($hash -ne $zipSha256) {
+            Remove-Item $zipPath -Force
+            throw "RCO_BGINFO.zip hash $hash doesn't match the expected $zipSha256"
+        }
+        Write-Log "Downloaded $zipPath (SHA-256 verified)"
     }
-    Write-Log "Downloaded $zipPath (SHA-256 verified)"
 
     # --- Remove BGInfo 1.x: logon entries, old folder, old files in C:\RCO\BGINFO ---
     foreach ($k in $runKeys) {
