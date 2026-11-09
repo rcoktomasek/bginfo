@@ -27,3 +27,18 @@ centred vertically on the screen. Layout values are at the top of `RCO-BGINFO-UP
 4. Put it in `$zipSha256` in `RCO-BGINFO-INSTALL.ps1`, bump the versions and changelogs, and commit
    the zip and scripts together. Until both are pushed, installs fail on the hash check.
 5. Re-run `RCO-BGINFO-INSTALL.ps1` from Action1.
+
+## Logon screen (`LOGONSCREEN\`)
+
+Sets the RCO lock / sign-in screen image (`RCO_Logon.jpg`: RCO branding plus the "owned and
+managed by Rowe Casa Organics" notice) for the whole PC. Display only, nothing to click, so
+automatic sign-in still works. Credential providers aren't touched, so GCPW is unaffected.
+
+| Script | What it does |
+|---|---|
+| `LOGONSCREEN\RCO-LOGONSCREEN-INSTALL.ps1` | Downloads `RCO_Logon.jpg`, checks its SHA-256, copies it to `C:\RCO\LOGONSCREEN`, sets it as the lock screen image (PersonalizationCSP) and turns on "Show clear logon background" so the notice isn't blurred. |
+| `LOGONSCREEN\RCO-LOGONSCREEN-RESET.ps1` | Removes both settings and `C:\RCO\LOGONSCREEN`. |
+
+Shows from the next lock, sign-out or restart. Logs to `%ProgramData%\RCO\Logs\LogonScreen.log`.
+To change the image, replace `RCO_Logon.jpg` (1920x1080), put its SHA-256 in `$imageSha256`, and
+commit both together.
